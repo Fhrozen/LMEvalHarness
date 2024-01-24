@@ -1,0 +1,19 @@
+{
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.egg-info": true
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "installer/**": true,
+        "recipes/**/**/data": true,
+        "recipes/**/**/dump": true,
+        "recipes/**/**/exp": true,
+        "recipes/**/**/mlruns": true,
+        "recipes/**/mlruns": true,
+        "tools/.ipynb*": true,
+    }
+}

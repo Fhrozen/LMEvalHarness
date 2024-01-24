@@ -26,33 +26,25 @@ Copied from: https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stabl
 | <a target="_blank" href="https://huggingface.co/cyberagent/open-calm-7b" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">cyberagent-open-calm-7b</a>                                                 |     38.8  |            24.22 |  37.63 |     74.12 |    45.79 |       60.74 |       2.04 |          65.07 |    0.8 | <a target="_blank" href="https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable/models/cyberagent/cyberagent-open-calm-7b/harness.sh" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">models/cyberagent/cyberagent-open-calm-7b/harness.sh</a>                                                   |
 | <a target="_blank" href="https://huggingface.co/cyberagent/open-calm-3b" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">cyberagent-open-calm-3b</a>                                                 |     38.61 |            27.79 |  40.35 |     86.21 |    40.45 |       46.91 |       1.95 |          63.61 |    1.6 | <a target="_blank" href="https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable/models/cyberagent/cyberagent-open-calm-3b/harness.sh" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">models/cyberagent/cyberagent-open-calm-3b/harness.sh</a>                                                   |
 | <a target="_blank" href="https://huggingface.co/rinna/japanese-gpt-1b" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">rinna-japanese-gpt-1b</a>                                                     |     36.92 |            34.76 |  37.67 |     87.86 |    26.18 |       37.03 |       5.34 |          64.55 |    2   | <a target="_blank" href="https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable/models/rinna/rinna-japanese-gpt-1b/harness.sh" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">models/rinna/rinna-japanese-gpt-1b/harness.sh</a>                                                                 |
-| <a target="_blank" href="https://huggingface.co/rinna/japanese-gpt-neox-small" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">rinna-japanese-gpt-neox-small</a>                                                     |     31.12 |            34.22 |  30.11 |     83.35 |    5.80 |       31.78 |       3.85 |          57.24 |    1.6   | <a target="_blank" href="https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable/models/rinna/rinna-japanese-gpt-neox-small/harness.sh" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">models/rinna/rinna-japanese-gpt-neox-small/harness.sh</a>                                                                 |
+| <a target="_blank" href="https://huggingface.co/rinna/japanese-gpt-neox-small" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">rinna-japanese-gpt-neox-small</a>                                                     |     31.12 |            34.22 |  30.11 |     83.35 |    5.80 |       31.78 |       3.85 |          57.24 |    1.6   | <a target="_blank" href="https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable/models/rinna/rinna-japanese-gpt-neox-small/harness.sh" style="color: var(--link-text-color); text-decoration: underline;text-decoration-style: dotted;">models/rinna/rinna-japanese-gpt-neox-small/harness.sh</a>
+
 ## How to evaluate your model
 
-1. git clone https://github.com/Stability-AI/lm-evaluation-harness/tree/jp-stable
+1. git clone https://github.com/Fhrozen/LMEvalHarness
     ```bash
-    git clone -b jp-stable https://github.com/Stability-AI/lm-evaluation-harness.git
-    cd lm-evaluation-harness
+    git clone https://github.com/Fhrozen/LMEvalHarness
+    cd LMEvalHarness
     pip install -e ".[ja]"
     ```
 2. Choose your prompt template based on [docs/prompt_templates.md]((https://github.com/Stability-AI/lm-evaluation-harness/blob/jp-stable/docs/prompt_templates.md))
-3. Replace `TEMPLATE` to the version and change `MODEL_PATH` . And, save the script as `harness.sh`
 
-    ```bash
-    MODEL_ARGS="pretrained=MODEL_PATH"
-    TASK="jsquad-1.1-TEMPLATE,jcommonsenseqa-1.1-TEMPLATE,jnli-1.1-TEMPLATE,marc_ja-1.1-TEMPLATE"
-    python main.py \
-        --model hf-causal \
-        --model_args $MODEL_ARGS \
-        --tasks $TASK \
-        --num_fewshot "2,3,3,3" \
-        --device "cuda" \
-        --output_path "result.json"
-    ```
-
-4. Run!
-   ```bash
-   sh harness.sh
+3. Run!
+   ```python
+   lm_eval --model hf \
+    --model_args pretrained=EleutherAI/gpt-j-6B \
+    --tasks hellaswag \
+    --device cuda:0 \
+    --batch_size 8
    ```
 
 We evaluated some open-sourced Japanese LMs. Pleasae refer to `harness.sh` inside `models` folder.
