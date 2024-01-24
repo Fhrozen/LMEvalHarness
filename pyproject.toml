@@ -35,6 +35,7 @@ dependencies = [
     "tqdm-multiprocess",
     "transformers>=4.1",
     "zstandard",
+    "mlflow",
 ]
 
 [tool.setuptools.packages.find]

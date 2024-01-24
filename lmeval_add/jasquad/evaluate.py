@@ -91,10 +91,10 @@ def evaluation(dataset, predictions):
                 )
                 f1 += metric_max_over_ground_truths(f1_score, prediction, ground_truths)
 
-    exact_match = 100.0 * exact_match / total
-    f1 = 100.0 * f1 / total
+    exact_match = exact_match / total
+    f1 = f1 / total
 
-    return {"exact_match": exact_match, "f1": f1}
+    return {"exact": exact_match, "f1": f1}
 
 
 if __name__ == "__main__":
@@ -118,4 +118,4 @@ if __name__ == "__main__":
         dataset = dataset_json["data"]
     with open(args.prediction_file) as prediction_file:
         predictions = json.load(prediction_file)
-    print(json.dumps(evaluate(dataset, predictions)))
+    print(json.dumps(evaluation(dataset, predictions)))

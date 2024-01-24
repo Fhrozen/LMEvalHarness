@@ -15,5 +15,8 @@
         "recipes/**/**/mlruns": true,
         "recipes/**/mlruns": true,
         "tools/.ipynb*": true,
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./tools/lmeval_harness"
+    ]
 }
