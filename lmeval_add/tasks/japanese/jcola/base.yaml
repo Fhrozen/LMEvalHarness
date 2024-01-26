@@ -1,0 +1,21 @@
+# JCoLA: Japanese Corpus of Linguistic Acceptability
+# https://arxiv.org/pdf/2309.12676.pdf
+
+# JCoLA is a novel dataset for targeted syntactic evaluations of 
+# language models in Japanese, which consists of 10,020 sentences 
+# with acceptability judgments by linguists. The sentences are 
+# manually extracted from linguistics journals, handbooks and textbooks.
+
+# Homepage: https://github.com/osekilab/JCoLA/tree/main
+
+# @article{someya2023jcola,
+#       title={JCoLA: Japanese Corpus of Linguistic Acceptability},
+#       author={Taiga Someya and Yushi Sugimoto and Yohei Oseki},
+#       year={2023},
+#       eprint={2309.12676},
+#       archivePrefix={arXiv},
+#       primaryClass={cs.CL}
+# }
+
+include: _template_yaml
+task: jcola_0.2-0.0

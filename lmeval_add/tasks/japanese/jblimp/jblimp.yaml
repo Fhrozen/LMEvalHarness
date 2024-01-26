@@ -1,0 +1,23 @@
+# JBLiMP: Japanese Benchmark of Linguistic Minimal Pairs
+# https://aclanthology.org/2023.findings-eacl.117/
+
+# JBLiMP is a novel dataset for targeted syntactic evaluations of 
+# language models in Japanese. JBLiMP consists of 331 minimal pairs, 
+# which are created based on acceptability judgments extracted from journal 
+# articles in theoretical linguistics. These minimal pairs are grouped into 
+# 11 categories, each covering a different linguistic phenomenon.
+
+# Homepage: https://github.com/osekilab/JBLiMP/tree/main
+
+# @inproceedings{Someya2023JBLiMPJB,
+#   title={JBLiMP: Japanese Benchmark of Linguistic Minimal Pairs},
+#   author={Taiga Someya and Yohei Oseki},
+#   booktitle={Findings},
+#   year={2023}
+# }
+
+dataset_name: jblimp
+include: _template_yaml
+task: jblimp
+doc_to_choice: "{{[good_sentence, bad_sentence]}}"
+doc_to_decontamination_query: "{{good_sentence}} {{bad_sentence}}"

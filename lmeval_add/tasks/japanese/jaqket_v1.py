@@ -306,9 +306,9 @@ class JAQKETV1(MultipleChoiceTask):
                     request_type="loglikelihood",
                     doc=doc,
                     arguments=(ctx, " {}".format(choice)),
-                    idx=0,
+                    idx=idx,
                     **kwargs,      
-                ) for choice in doc["choices"]
+                ) for idx, choice in enumerate(doc["choices"])
             ]
         return lls
 

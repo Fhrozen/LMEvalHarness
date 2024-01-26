@@ -18,6 +18,7 @@ from .jsquad import (
     JSQuADWithRinnaBilingualInstructionSFT,
     JSQuADWithLlama2,
 )
+from lm_eval.api.registry import register_task
 
 
 _CITATION = """
@@ -32,6 +33,7 @@ _CITATION = """
 """
 
 
+@register_task("jaquad_0.1-0.1")
 class JaQuAD(JSQuAD):
     DATASET_PATH = "SkelterLabsInc/JaQuAD"
     DATASET_NAME = None
@@ -58,23 +60,28 @@ class JaQuAD(JSQuAD):
         return JSQuAD.process_results(self, doc, results)
 
 
+@register_task("jaquad_0.1-0.2")
 class JaQuADWithFintanPrompt(JSQuADWithFintanPrompt, JaQuAD):
     PROMPT_VERSION = 0.2
 
 
+@register_task("jaquad_0.1-0.3")
 class JaQuADWithJAAlpacaPrompt(JSQuADWithJAAlpacaPrompt, JaQuAD):
     PROMPT_VERSION = 0.3
 
 
+@register_task("jaquad_0.1-0.4")
 class JaQuADWithRinnaInstructionSFT(JSQuADWithRinnaInstructionSFT, JaQuAD):
     PROMPT_VERSION = 0.4
 
 
+@register_task("jaquad_0.1-0.5")
 class JaQuADWithRinnaBilingualInstructionSFT(
     JSQuADWithRinnaBilingualInstructionSFT, JaQuAD
 ):
     PROMPT_VERSION = 0.5
 
 
+@register_task("jaquad_0.1-0.6")
 class JaQuADWithLlama2(JSQuADWithLlama2, JaQuAD):
     PROMPT_VERSION = 0.6

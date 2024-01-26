@@ -1,0 +1,7 @@
+include: _template_yaml
+task: jcola_0.2-0.4
+doc_to_text: "ユーザー: {{sentence}}<NL>システム: "
+output_type: generate_until
+generation_kwargs:
+    until:
+        - "<NL>"

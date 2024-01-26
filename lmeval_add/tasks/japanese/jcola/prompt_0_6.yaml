@@ -1,0 +1,7 @@
+include: _template_yaml
+task: jcola_0.2-0.6
+doc_to_text: !function utils.doc2text_06
+output_type: generate_until
+generation_kwargs:
+    until:
+        - " </s><s>[INST] "

@@ -147,12 +147,28 @@ def simple_evaluate(
                 )
 
                 task_obj._config["num_fewshot"] = num_fewshot
-        if hasattr(task_obj, "use_model_tok"):
-            if task_obj.use_model_tok:
+
+        # TODO(Fhrozen): Try to remove this part so loading the tasks could be simplifyied
+        # Maybe using trust_code in the dataset loading.
+
+        if hasattr(task_obj, "LOAD_TOKENIZER"):
+            if task_obj.LOAD_TOKENIZER:
                 if isinstance(lm, lm_eval.api.model.CachingLM):
                     task_obj.tokenizer = lm.lm.tokenizer
                 else:
                     task_obj.tokenizer = lm.tokenizer
+        if hasattr(task_obj, "max_length"):
+            task.max_length = (
+                lm.lm.max_length
+                if isinstance(lm, lm_eval.api.model.CachingLM)
+                else lm.max_length
+            )
+        if hasattr(task_obj, "max_gen_toks"):
+            task.max_gen_toks = (
+                lm.lm.max_gen_toks
+                if isinstance(lm, lm_eval.api.model.CachingLM)
+                else lm.max_gen_toks
+            )
 
     if check_integrity:
         run_task_tests(task_list=tasks)

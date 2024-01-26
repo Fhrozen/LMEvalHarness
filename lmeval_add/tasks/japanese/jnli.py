@@ -8,7 +8,15 @@ JGLUE has been constructed from scratch without translation.
 Homepage: https://github.com/yahoojapan/JGLUE
 """
 import os
-from lm_eval.base import BalancedMultipleChoiceTask, rf
+import numpy as np
+
+# from lm_eval.base import BalancedMultipleChoiceTask, rf
+from lm_eval.api.task import MultipleChoiceTask
+from lm_eval.api.instance import Instance
+from lm_eval.api.registry import register_task
+from lm_eval.api.metrics import mean, matthews_corrcoef
+
+from lmeval_add.utils.metrics import balanced_mean, macro_f1
 
 _CITATION = """
 @inproceedings{kurihara-etal-2022-jglue,
@@ -27,8 +35,8 @@ _CITATION = """
 }
 """
 
-
-class JNLIWithFintanPrompt(BalancedMultipleChoiceTask):
+@register_task("jnli_1.3-0.2")
+class JNLIWithFintanPrompt(MultipleChoiceTask):
     """
     prompt template is taken from [ChatGPT vs BERT: どちらが日本語をより理解できるのか?](https://fintan.jp/page/9126/)
     """
@@ -72,6 +80,33 @@ class JNLIWithFintanPrompt(BalancedMultipleChoiceTask):
             "gold": int(doc["label"]),
         }
 
+    def process_results(self, doc, results):
+        gold = doc["gold"]
+
+        # This isn't very clean, but it may be the best we can do since lm ops
+        # are submitted as an iterator for batching
+        response = None
+        if isinstance(results[-1], str):
+            response = results.pop()
+
+        pred = np.argmax(results)
+        acc = 1.0 if np.argmax(results) == gold else 0.0
+        completion_len = np.array([float(len(i)) for i in doc["choices"]])
+        acc_norm = 1.0 if np.argmax(results / completion_len) == gold else 0.0
+
+        return {
+            "acc": acc,
+            "acc_norm": acc_norm,
+            "balanced_acc": (acc, gold),
+            "mcc": (gold, pred),
+            "macro_f1": (gold, pred),
+            "details": {
+                "question": self.doc_to_text(doc),
+                "response": response,
+                "scores": results,
+            },
+        }
+
     def doc_to_text(self, doc):
         """
         前提:{premise}
@@ -83,37 +118,49 @@ class JNLIWithFintanPrompt(BalancedMultipleChoiceTask):
     def doc_to_target(self, doc):
         return doc["choices"][doc["gold"]]
 
-    def construct_requests(self, doc, ctx):
+    def higher_is_better(self):
+        return {
+            "acc": True,
+            "acc_norm": True,
+            "balanced_acc": True,
+            "mcc": True,
+            "macro_f1": True,
+        }
+
+    def construct_requests(self, doc, ctx, **kwargs):
+        # rf.loglikelihood(ctx, "{}".format(choice))[0] for choice in doc["choices"]
         lls = [
-            rf.loglikelihood(ctx, "{}".format(choice))[0] for choice in doc["choices"]
+            Instance(
+                request_type="loglikelihood",
+                doc=doc,
+                arguments=(ctx, "{}".format(choice)),
+                idx=idx,
+                **kwargs,      
+            ) for idx, choice in enumerate(doc["choices"])
         ]
         # this is only used for error analysis
         if os.environ.get("DEBUG_MULTIPLECHOICE"):
-            lls.append(rf.greedy_until(ctx, [self.SEP]))
+            lls.append(Instance(
+                request_type="generate_until",
+                doc=doc,
+                arguments=(ctx, dict(until=[self.SEP])),
+                idx=0,
+                **kwargs
+            ))
+            # lls.append(rf.greedy_until(ctx, [self.SEP]))
         return lls
 
-    def fewshot_context(
-        self,
-        doc,
-        num_fewshot,
-        provide_description=None,
-        rnd=None,
-        description=None,
-        stratified=False,
-    ):
-        """
-        TODO: move this to `MultipleChoiceTask`.
-        Directly implementing this in `MultipleChoiceTask` will break the task versioning
-        as the metric definition will get updated, and thus we need to incrementally apply this to all
-        tasks that inherit `MultipleChoiceTask` AND bump their task `VERSION`, and
-        only after all tasks have been updated, then we can move this to `MultipleChoiceTask`.
-        """
-        # Use stratified sampling
-        return super().fewshot_context(
-            doc, num_fewshot, provide_description, rnd, description, stratified=True
-        )
+    def aggregation(self):
+        return {
+            "acc": mean,
+            "acc_norm": mean,
+            "balanced_acc": balanced_mean,
+            "mcc": matthews_corrcoef,
+            "macro_f1": macro_f1,
+        }
 
 
+@register_task("jnli_1.3-0.3")
 class JNLIWithJAAlpacaPrompt(JNLIWithFintanPrompt):
     """
     Reference:
@@ -144,6 +191,7 @@ class JNLIWithJAAlpacaPrompt(JNLIWithFintanPrompt):
         return f"### 指示:\n{self.INSTRUCTION}\n\n### 入力:\n{input_text}\n\n### 応答:\n"
 
 
+@register_task("jnli_1.3-0.4")
 class JNLIWithRinnaInstructionSFT(JNLIWithFintanPrompt):
     """
     Reference:
@@ -165,6 +213,7 @@ class JNLIWithRinnaInstructionSFT(JNLIWithFintanPrompt):
         return f"ユーザー: {input_text}{self.SEP}システム: "
 
 
+@register_task("jnli_1.3-0.5")
 class JNLIWithRinnaBilingualInstructionSFT(JNLIWithRinnaInstructionSFT):
     """
     Reference:
@@ -182,6 +231,7 @@ class JNLIWithRinnaBilingualInstructionSFT(JNLIWithRinnaInstructionSFT):
     FEWSHOT_SEP = "\n"
 
 
+@register_task("jnli_1.3-0.6")
 class JNLIWithLlama2(JNLIWithJAAlpacaPrompt):
     """
     This prompt version follows the Llama2-chat's prompt format:

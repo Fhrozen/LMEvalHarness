@@ -1,0 +1,14 @@
+dataset_path: shunk031/JGLUE
+dataset_name: JCoLA
+output_type: multiple_choice
+training_split: train
+validation_split: validation
+doc_to_text: "{{sentence}}\n質問: この文は文法的ですか？\n答え:"
+doc_to_target: " {{label}}"
+doc_to_choice: ["はい", "いいえ"]
+should_decontaminate: true
+doc_to_decontamination_query: sentence
+metric_list:
+  - metric: mcc
+metadata:
+  version: 0.2

@@ -10,8 +10,11 @@ Homepage: https://github.com/csebuetnlp/xl-sum
 """
 import os
 import inspect
-from lm_eval.utils import rouge2_mecab
-from lm_eval.base import rf, Task
+from lm_eval.api.task import Task
+from lm_eval.api.instance import Instance
+from lm_eval.api.registry import register_task
+
+from lmeval_add.utils.japanese import rouge2_mecab
 
 
 _CITATION = """
@@ -39,7 +42,7 @@ _CITATION = """
 
 DYNAMIC_MAX_LENGTH = os.getenv("DYNAMIC_MAX_LENGTH", "true").lower()
 
-
+@register_task("xlsum_ja_1.0-0.0")
 class XLSumJa(Task):
     """
     - Use ROUGE-2 as [PaLM 2](https://ai.google/static/documents/palm2techreport.pdf)
@@ -57,7 +60,7 @@ class XLSumJa(Task):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        from . import MecabTokenizer
+        from lmeval_add.utils.japanese import MecabTokenizer
 
         self.tokenizer = MecabTokenizer()
 
@@ -130,14 +133,21 @@ class XLSumJa(Task):
             encode_params = {}
         return encode_fn(text, **encode_params, **kwargs)
 
-    def construct_requests(self, doc, ctx):
+    def construct_requests(self, doc, ctx, **kwargs):
         if DYNAMIC_MAX_LENGTH == "false" or not hasattr(self.tokenizer, "encode"):
             max_num_tokens = self.max_gen_toks
         else:
             # length + some buffers (10)
             max_num_tokens = len(self._tokenize(doc["summary"])) + 10
         ctx = self.preprocess_ctx(ctx, max_length=self.max_length - max_num_tokens)
-        continuation = rf.greedy_until(ctx, [self.SEP], max_num_tokens)
+        # continuation = rf.greedy_until(ctx, [self.SEP], max_num_tokens)
+        continuation = Instance(
+            request_type="generate_until",
+            doc=doc,
+            arguments=(ctx, dict(until=[self.SEP], max_gen_toks=max_num_tokens)),
+            idx=0,
+            **kwargs
+        )
         return continuation
 
     def process_results(self, doc, results):
@@ -173,6 +183,7 @@ class XLSumJa(Task):
         return res["rouge2"]
 
 
+@register_task("xlsum_ja_1.0-0.3")
 class XLSumJaWithJAAlpacaPrompt(XLSumJa):
     PROMPT_VERSION = 0.3
     DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
@@ -203,6 +214,7 @@ class XLSumJaWithJAAlpacaPrompt(XLSumJa):
         )
 
 
+@register_task("xlsum_ja_1.0-0.4")
 class XLSumJaWithRinnaInstructionSFT(XLSumJa):
     """
     Reference:
@@ -226,6 +238,7 @@ class XLSumJaWithRinnaInstructionSFT(XLSumJa):
         return ctx
 
 
+@register_task("xlsum_ja_1.0-0.5")
 class XLSumJaWithRinnaBilingualInstructionSFT(XLSumJaWithRinnaInstructionSFT):
     """
     Reference:
@@ -238,6 +251,7 @@ class XLSumJaWithRinnaBilingualInstructionSFT(XLSumJaWithRinnaInstructionSFT):
     FEWSHOT_SEP = "\n"
 
 
+@register_task("xlsum_ja_1.0-0.6")
 class XLSumJaWithLlama2(XLSumJa):
     """
     This prompt version follows the Llama2-chat's prompt format:

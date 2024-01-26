@@ -8,10 +8,15 @@ Homepage: https://www.nlp.ecei.tohoku.ac.jp/projects/jaqket/
 import os
 import inspect
 import datasets
-from math import exp
-from lm_eval.base import rf, Task
+import evaluate
 from functools import partial
-from lm_eval.jasquad import jasquad
+from math import exp
+
+from lm_eval.api.task import Task
+from lm_eval.api.instance import Instance
+from lm_eval.api.registry import register_task
+
+from lmeval_add.jasquad import jasquad
 
 _CITATION = """
 @InProceedings{Kurihara_nlp2020,
@@ -27,9 +32,12 @@ TOP_K_LIMIT = 5
 DYNAMIC_MAX_LENGTH = os.getenv("DYNAMIC_MAX_LENGTH", "true").lower()
 
 
+@register_task("jaqket_v2_0.2-0.1")
 class JAQKETV2(Task):
     """
-    prompt template is taken from [日本語に特化した60億パラメータ規模のGPTモデルの構築と評価](https://www.anlp.jp/proceedings/annual_meeting/2023/pdf_dir/H9-4.pdf)
+    prompt template is taken from 
+    [日本語に特化した60億パラメータ規模のGPTモデルの構築と評価]
+    (https://www.anlp.jp/proceedings/annual_meeting/2023/pdf_dir/H9-4.pdf)
     """
 
     VERSION = 0.2
@@ -44,7 +52,7 @@ class JAQKETV2(Task):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.jasqaud_metric = datasets.load_metric(jasquad.__file__)
+        self.jasqaud_metric = evaluate.load(jasquad.__file__)
 
     def download(self, data_dir=None, cache_dir=None, download_mode=None):
         """Downloads and returns the task dataset.
@@ -160,20 +168,39 @@ class JAQKETV2(Task):
 
     def _tokenize(self, text, **kwargs):
         encode_fn = self.tokenizer.encode
+        encode_params = dict()
         if "add_special_tokens" in inspect.getfullargspec(encode_fn).args:
-            encode_params = dict(add_special_tokens=False)
-        else:
-            encode_params = {}
+            encode_params["add_special_tokens"] = False
+
         return encode_fn(text, **encode_params, **kwargs)
 
-    def construct_requests(self, doc, ctx):
+    def construct_requests(self, doc, ctx, **kwargs):
+        args_until = dict(until=[self.SEP])
         if DYNAMIC_MAX_LENGTH == "false" or not hasattr(self.tokenizer, "encode"):
-            continuation = rf.greedy_until(ctx, [self.SEP])
+            # continuation = rf.greedy_until(ctx, [self.SEP])
+            pass
         else:
+            # continuation = rf.greedy_until(ctx, [self.SEP], max_num_tokens)
+            encode_fn = self.tokenizer.encode
+            encode_params = dict()
+            if "add_special_tokens" in inspect.getfullargspec(encode_fn).args:
+                encode_params["add_special_tokens"] = False
+   
             max_num_tokens = max(
-                [len(self._tokenize(answer)) for answer in doc["answers"]["text"]]
+                [
+                    len(encode_fn(answer, **encode_params))
+                    for answer in doc["answers"]["text"]
+                ]
             )
-            continuation = rf.greedy_until(ctx, [self.SEP], max_num_tokens)
+            args_until.update(max_gen_toks=max_num_tokens)
+
+        continuation = Instance(
+            request_type="generate_until",
+            doc=doc,
+            arguments=(ctx, args_until),
+            idx=0,
+            **kwargs
+        )
         return continuation
 
     def process_results(self, doc, results):
@@ -203,11 +230,11 @@ class JAQKETV2(Task):
 
         # add details. Because the metric computation isn't simple (probably?)
         # always include it.
-        out["details"] = {
-            "question": doc["question"],
-            "response": continuation,
-            "gold": doc["answers"],
-        }
+        # out["details"] = {
+        #     "question": doc["question"],
+        #     "response": continuation,
+        #     "gold": doc["answers"],
+        # }
 
         return out
 
@@ -234,12 +261,14 @@ class JAQKETV2(Task):
 
     def _squad_agg(self, key, item):
         predictions, references = zip(*item)
-        return self._squad_metric(predictions=predictions, references=references)[key]
+        return self._squad_metric(predictions=predictions, references=references).get(key, 0)
 
 
+@register_task("jaqket_v2_0.2-0.2")
 class JAQKETV2WithFintanPrompt(JAQKETV2):
     """
-    prompt template is taken from [ChatGPT vs BERT: どちらが日本語をより理解できるのか?](https://fintan.jp/page/9126/)
+    prompt template is taken from [ChatGPT vs BERT: 
+    どちらが日本語をより理解できるのか?](https://fintan.jp/page/9126/)
     """
 
     PROMPT_VERSION = 0.2
@@ -266,23 +295,29 @@ class JAQKETV2WithFintanPrompt(JAQKETV2):
         return answer_candidate + self.SEP + qa_prompt
 
 
+@register_task("jaqket_v2_0.2-0.3")
 class JAQKETV2WithJAAlpacaPrompt(JAQKETV2):
     """
     This prompt format was inspired by the below data in fujiki/japanese_alpaca_data.
     ```
     {
         'instruction': '与えられた文脈に最も適した文を選択してください。',
-        'input': '文脈：あなたは親友と現在の仕事の状況について話しています。\nA）私にはあまり選択肢がありません。\nB）他に選択肢がありません。\nC）私には本当に決断する必要がありません。',
+        'input': '文脈：あなたは親友と現在の仕事の状況について話しています。
+        A）私にはあまり選択肢がありません。
+        B）他に選択肢がありません。
+        C）私には本当に決断する必要がありません。',
         'output': 'A) 私には多くの選択肢がありません。'
     }
     ```
     Reference:
     - data: https://huggingface.co/datasets/fujiki/japanese_alpaca_data
-    - code: https://github.com/Stability-AI/gpt-neox/blob/c130a4edc1120dccec8f02a34eb60d3e8f484cd3/finetune/finetune_base_ja.py#LL118C23-L127C11
+    - code: https://github.com/Stability-AI/gpt-neox/blob/
+        c130a4edc1120dccec8f02a34eb60d3e8f484cd3/finetune/finetune_base_ja.py#LL118C23-L127C11
     """
 
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    DESCRIPTION = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
+    要求を適切に満たす応答を書きなさい。"""
     INSTRUCTION = "与えられた文脈から、質問に対する答えを抜き出してください。"
 
     def doc_to_qa_prompt(self, doc):
@@ -317,6 +352,7 @@ class JAQKETV2WithJAAlpacaPrompt(JAQKETV2):
         return f"### 指示:\n{self.INSTRUCTION}\n\n### 入力:\n{answer_candidate}\n{qa_prompt}\n\n### 応答:\n"
 
 
+@register_task("jaqket_v2_0.2-0.4")
 class JAQKETV2WithRinnaInstructionSFT(JAQKETV2):
     """
     Reference:
@@ -350,6 +386,7 @@ class JAQKETV2WithRinnaInstructionSFT(JAQKETV2):
         return f"ユーザー: {answer_candidate}{self.SEP}{qa_prompt}{self.SEP}システム: "
 
 
+@register_task("jaqket_v2_0.2-0.5")
 class JAQKETV2WithRinnaBilingualInstructionSFT(JAQKETV2WithRinnaInstructionSFT):
     """
     Reference:
@@ -362,6 +399,7 @@ class JAQKETV2WithRinnaBilingualInstructionSFT(JAQKETV2WithRinnaInstructionSFT):
     FEWSHOT_SEP = "\n"
 
 
+@register_task("jaqket_v2_0.2-0.6")
 class JAQKETV2WithLlama2(JAQKETV2WithJAAlpacaPrompt):
     """
     This prompt version follows the Llama2-chat's prompt format:
@@ -377,7 +415,14 @@ class JAQKETV2WithLlama2(JAQKETV2WithJAAlpacaPrompt):
 
     PROMPT_VERSION = 0.6
     # This is the English prompt.
-    # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
+    # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. 
+    # Always answer as helpfully as possible, while being safe.
+    # Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, 
+    # or illegal content. Please ensure that your responses are socially 
+    # unbiased and positive in nature.
+    # If a question does not make any sense, or is not factually coherent, 
+    # explain why instead of answering something not correct. 
+    # If you don't know the answer to a question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
     DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"

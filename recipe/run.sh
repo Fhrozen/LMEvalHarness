@@ -46,7 +46,7 @@ log "LM Evaluation started... log: '${working_dir}/initial_eval.log'"
             --num_fewshot ${num_fewshots} \
             --verbosity ${verbosity} \
             --write_out \
-            --log_samples
-            # --limit 10 
+            --log_samples \
+            --limit 10
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

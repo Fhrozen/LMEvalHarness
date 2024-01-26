@@ -2,24 +2,54 @@
 WikiLingua: A New Benchmark Dataset for Cross-Lingual Abstractive Summarization
 https://aclanthology.org/2020.findings-emnlp.360/
 
-We introduce WikiLingua, a large-scale, multilingual dataset for the evaluation of cross-lingual abstractive summarization systems. We extract article and summary pairs in 18 languages from WikiHow, a high quality, collaborative resource of how-to guides on a diverse set of topics written by human authors. We create gold-standard article-summary alignments across languages by aligning the images that are used to describe each how-to step in an article. As a set of baselines for further studies, we evaluate the performance of existing cross-lingual abstractive summarization methods on our dataset. We further propose a method for direct cross-lingual summarization (i.e., without requiring translation at inference time) by leveraging synthetic data and Neural Machine Translation as a pre-training step. Our method significantly outperforms the baseline approaches, while being more cost efficient during inference.
+We introduce WikiLingua, a large-scale, multilingual dataset for the evaluation 
+of cross-lingual abstractive summarization systems. We extract article and summary
+pairs in 18 languages from WikiHow, a high quality, collaborative resource of 
+how-to guides on a diverse set of topics written by human authors. We create 
+gold-standard article-summary alignments across languages by aligning the images 
+that are used to describe each how-to step in an article. As a set of baselines 
+for further studies, we evaluate the performance of existing cross-lingual abstractive
+summarization methods on our dataset. We further propose a method for direct
+cross-lingual summarization (i.e., without requiring translation at inference time) 
+by leveraging synthetic data and Neural Machine Translation as a pre-training step.
+Our method significantly outperforms the baseline approaches, while being more cost 
+efficient during inference.
 
 Homepage: https://github.com/esdurmus/Wikilingua
 """
 import os
-import numpy as np
-import datasets
-from lm_eval.base import rf, Task
-from lm_eval.metrics import mean
-from lm_eval.utils import rouge2_mecab
+from lm_eval.api.task import Task
+from lm_eval.api.instance import Instance
+from lm_eval.api.registry import register_task
+
+from lmeval_add.utils.japanese import rouge2_mecab
+
 
 
 _CITATION = """
-@inproceedings{ladhak-etal-2020-wikilingua, title = "{W}iki{L}ingua: A New Benchmark Dataset for Cross-Lingual Abstractive Summarization", author = "Ladhak, Faisal and Durmus, Esin and Cardie, Claire and McKeown, Kathleen", booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2020", month = nov, year = "2020", address = "Online", publisher = "Association for Computational Linguistics", url = "https://aclanthology.org/2020.findings-emnlp.360", doi = "10.18653/v1/2020.findings-emnlp.360", pages = "4034--4048", abstract = "We introduce WikiLingua, a large-scale, multilingual dataset for the evaluation of cross-lingual abstractive summarization systems. We extract article and summary pairs in 18 languages from WikiHow, a high quality, collaborative resource of how-to guides on a diverse set of topics written by human authors. We create gold-standard article-summary alignments across languages by aligning the images that are used to describe each how-to step in an article. As a set of baselines for further studies, we evaluate the performance of existing cross-lingual abstractive summarization methods on our dataset. We further propose a method for direct cross-lingual summarization (i.e., without requiring translation at inference time) by leveraging synthetic data and Neural Machine Translation as a pre-training step. Our method significantly outperforms the baseline approaches, while being more cost efficient during inference.", }
+@inproceedings{ladhak-etal-2020-wikilingua, title = "{W}iki{L}ingua: A New 
+Benchmark Dataset for Cross-Lingual Abstractive Summarization", author = 
+"Ladhak, Faisal and Durmus, Esin and Cardie, Claire and McKeown, Kathleen", 
+booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2020", 
+month = nov, year = "2020", address = "Online", publisher = "Association for 
+Computational Linguistics", url = "https://aclanthology.org/2020.findings-emnlp.360", 
+doi = "10.18653/v1/2020.findings-emnlp.360", pages = "4034--4048", abstract = 
+"We introduce WikiLingua, a large-scale, multilingual dataset for the evaluation
+of cross-lingual abstractive summarization systems. We extract article and summary
+pairs in 18 languages from WikiHow, a high quality, collaborative resource of how-to
+guides on a diverse set of topics written by human authors. We create gold-standard
+article-summary alignments across languages by aligning the images that are used to
+describe each how-to step in an article. As a set of baselines for further studies,
+we evaluate the performance of existing cross-lingual abstractive summarization methods
+on our dataset. We further propose a method for direct cross-lingual summarization 
+(i.e., without requiring translation at inference time) by leveraging synthetic data
+and Neural Machine Translation as a pre-training step. Our method significantly 
+outperforms the baseline approaches, while being more cost efficient during inference.", }
 """
 
 
 # TODO make a summarization task
+@register_task("wikilingua_ja_1.0-0.0")
 class Wikilingua(Task):
     VERSION = 1.0
     # custom prompt
@@ -31,7 +61,7 @@ class Wikilingua(Task):
 
     def __init__(self):
         super().__init__()
-        from . import MecabTokenizer
+        from lmeval_add.utils.japanese import MecabTokenizer
 
         self.tokenizer = MecabTokenizer()
 
@@ -66,7 +96,7 @@ class Wikilingua(Task):
         # target = doc["target"].replace(" \u3000", "\u3000").replace("\u3000 ", "。")
         return target
 
-    def construct_requests(self, doc, ctx):
+    def construct_requests(self, doc, ctx, **kwargs):
         """Uses RequestFactory to construct Requests and returns an iterable of
         Requests which will be sent to the LM.
 
@@ -77,8 +107,14 @@ class Wikilingua(Task):
             language description, as well as the few shot examples, and the question
             part of the document for `doc`.
         """
-        completion = rf.greedy_until(ctx, ["\n"])
-        return completion
+        continuation = Instance(
+            request_type="generate_until",
+            doc=doc,
+            arguments=(ctx, dict(until=["\n"])),
+            idx=0,
+            **kwargs
+        )
+        return continuation
 
     def process_results(self, doc, results):
         """Take a single document and the LM results and evaluates, returning a
@@ -112,9 +148,11 @@ class Wikilingua(Task):
         }
 
 
+@register_task("wikilingua_ja_1.0-0.3")
 class WikilinguaWithJAAlpacaPrompt(Wikilingua):
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    DESCRIPTION = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
+    要求を適切に満たす応答を書きなさい。\n\n"""
     INSTRUCTION = "与えられたニュース記事を要約してください。"
 
     def doc_to_text(self, doc):
@@ -134,6 +172,7 @@ class WikilinguaWithJAAlpacaPrompt(Wikilingua):
         return f"### 指示:\n{self.INSTRUCTION}\n\n### 入力:\n{input_text}\n\n### 応答:\n"
 
 
+@register_task("wikilingua_ja_1.0-0.4")
 class WikilinguaWithRinnaInstructionSFT(Wikilingua):
     """
     Reference:
@@ -158,6 +197,7 @@ class WikilinguaWithRinnaInstructionSFT(Wikilingua):
         )
 
 
+@register_task("wikilingua_ja_1.0-0.5")
 class WikilinguaWithRinnaBilingualInstructionSFT(WikilinguaWithRinnaInstructionSFT):
     PROMPT_VERSION = 0.5
     DESCRIPTION = "ユーザー: 与えられたニュース記事を要約してください。\nシステム: 分かりました。\n"
@@ -165,6 +205,7 @@ class WikilinguaWithRinnaBilingualInstructionSFT(WikilinguaWithRinnaInstructionS
     FEWSHOT_SEP = "\n"
 
 
+@register_task("wikilingua_ja_1.0-0.6")
 class WikilinguaWithLlama2(Wikilingua):
     """
     This prompt version follows the Llama2-chat's prompt format:
@@ -179,7 +220,14 @@ class WikilinguaWithLlama2(Wikilingua):
     """
 
     PROMPT_VERSION = 0.6
-    # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
+    # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. 
+    # Always answer as helpfully as possible, while being safe.  
+    # Your answers should not include any harmful, unethical, racist, sexist, 
+    # toxic, dangerous, or illegal content. Please ensure that your responses
+    # are socially unbiased and positive in nature.\n\nIf a question does not
+    # make any sense, or is not factually coherent, explain why instead of
+    # answering something not correct. If you don't know the answer to a 
+    # question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
     DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"

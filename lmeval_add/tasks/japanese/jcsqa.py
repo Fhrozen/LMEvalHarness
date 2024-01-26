@@ -11,7 +11,9 @@ import os
 import warnings
 import time
 
-from lm_eval.base import MultipleChoiceTask, rf
+from lm_eval.api.task import MultipleChoiceTask
+from lm_eval.api.instance import Instance
+from lm_eval.api.registry import register_task
 import numpy as np
 
 
@@ -33,6 +35,7 @@ _CITATION = """
 """
 
 
+@register_task("jcommonsenseqa_1.1-0.1")
 class JCommonsenseQA(MultipleChoiceTask):
     """
     prompt format is taken from [日本語に特化した60億パラメータ規模のGPTモデルの構築と評価](https://www.anlp.jp/proceedings/annual_meeting/2023/pdf_dir/H9-4.pdf)
@@ -79,11 +82,17 @@ class JCommonsenseQA(MultipleChoiceTask):
     def doc_to_target(self, doc):
         return doc["choices"][doc["gold"]]
 
-    def construct_requests(self, doc, ctx):
+    def construct_requests(self, doc, ctx, **kwargs):
+        # rf.loglikelihood(ctx, "{}".format(choice))[0] for choice in doc["choices"]
         lls = [
-            rf.loglikelihood(ctx, "{}".format(choice))[0] for choice in doc["choices"]
+            Instance(
+                request_type="loglikelihood",
+                doc=doc,
+                arguments=(ctx, "{}".format(choice)),
+                idx=idx,
+                **kwargs,      
+            ) for idx, choice in enumerate(doc["choices"])
         ]
-
         return lls
 
     def process_results(self, doc, results):
@@ -111,6 +120,7 @@ class JCommonsenseQA(MultipleChoiceTask):
         return out
 
 
+@register_task("jcommonsenseqa_1.1-0.2")
 class JCommonsenseQAWithFintanPrompt(JCommonsenseQA):
     """
     prompt template is taken from [ChatGPT vs BERT: どちらが日本語をより理解できるのか?](https://fintan.jp/page/9126/)
@@ -146,6 +156,7 @@ class JCommonsenseQAWithFintanPrompt(JCommonsenseQA):
         return f"{doc['gold']}"
 
 
+@register_task("jcommonsenseqa_1.1-0.2.1")
 class JCommonsenseQAWithFintanPromptV21(JCommonsenseQA):
     VERSION = 1.1
     PROMPT_VERSION = "0.2.1"
@@ -166,6 +177,7 @@ class JCommonsenseQAWithFintanPromptV21(JCommonsenseQA):
         return input_text
 
 
+@register_task("jcommonsenseqa_1.1-0.3")
 class JCommonsenseQAWithJAAlpacaPrompt(JCommonsenseQA):
     """
     This prompt format was inspired by the below data in fujiki/japanese_alpaca_data.
@@ -205,6 +217,7 @@ class JCommonsenseQAWithJAAlpacaPrompt(JCommonsenseQA):
         return f"### 指示:\n{instruction_text}\n\n### 入力:\n{input_text}\n\n### 応答:\n"
 
 
+@register_task("jcommonsenseqa_1.1-0.4")
 class JCommonsenseQAWithRinnaInstructionSFT(JCommonsenseQA):
     """
     Reference:
@@ -223,6 +236,7 @@ class JCommonsenseQAWithRinnaInstructionSFT(JCommonsenseQA):
         return f"ユーザー: {input_text}{self.SEP}システム: "
 
 
+@register_task("jcommonsenseqa_1.1-0.5")
 class JCommonsenseQAWithRinnaBilingualInstructionSFT(
     JCommonsenseQAWithRinnaInstructionSFT
 ):
@@ -237,6 +251,7 @@ class JCommonsenseQAWithRinnaBilingualInstructionSFT(
     FEWSHOT_SEP = "\n"
 
 
+@register_task("jcommonsenseqa_1.1-0.6")
 class JCommonsenseQAWithLlama2(JCommonsenseQA):
     """
     This prompt version follows the Llama2-chat's prompt format:

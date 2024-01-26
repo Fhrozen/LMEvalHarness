@@ -1,6 +1,5 @@
 import os
 import inspect
-# import datasets
 import evaluate
 from functools import partial
 
@@ -114,17 +113,16 @@ class JSQuAD(Task):
         return answer
 
     def construct_requests(self, doc, ctx, **kwargs):
-
         args_until = dict(until=[self.SEP])
         if DYNAMIC_MAX_LENGTH == "false" or not hasattr(self.tokenizer, "encode"):
             # continuation = rf.greedy_until(ctx, [self.SEP])
             pass
         else:
             encode_fn = self.tokenizer.encode
+            encode_params = dict()
             if "add_special_tokens" in inspect.getfullargspec(encode_fn).args:
-                encode_params = dict(add_special_tokens=False)
-            else:
-                encode_params = {}
+                encode_params["add_special_tokens"] = False
+
             max_num_tokens = max(
                 [
                     len(encode_fn(answer, **encode_params))
