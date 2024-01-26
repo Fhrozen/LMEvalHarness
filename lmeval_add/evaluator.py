@@ -118,6 +118,12 @@ def simple_evaluate(
         )
 
     task_dict = lm_eval.tasks.get_task_dict(tasks)
+
+    if num_fewshot is not None:
+        if isinstance(num_fewshot, list):
+            pass
+    print(type(num_fewshot))
+    exit(1)
     for task_name in task_dict.keys():
         task_obj = task_dict[task_name]
         if type(task_obj) == tuple:

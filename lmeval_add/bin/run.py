@@ -9,13 +9,136 @@ from pathlib import Path
 from typing import Union
 
 from lm_eval import utils
-from lm_eval.__main__ import parse_eval_args, _handle_non_serializable
+from lm_eval.__main__ import  _handle_non_serializable
 from lm_eval.api.registry import ALL_TASKS
 from lm_eval.tasks import include_path, initialize_tasks
 from lm_eval.utils import make_table
 
 from lmeval_add.evaluator import simple_evaluate
 from lmeval_add.tasks.japanese import * 
+
+
+def parse_eval_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--model", "-m", default="hf", help="Name of model e.g. `hf`")
+    parser.add_argument(
+        "--tasks",
+        "-t",
+        default=None,
+        metavar="task1,task2",
+        help="To get full list of tasks, use the command lm-eval --tasks list",
+    )
+    parser.add_argument(
+        "--model_args",
+        "-a",
+        default="",
+        help="Comma separated string arguments for model, e.g. `pretrained=EleutherAI/pythia-160m,dtype=float32`",
+    )
+    parser.add_argument(
+        "--num_fewshot",
+        "-f",
+        type=int,
+        default=None,
+        nargs="+",
+        metavar="N",
+        help="Number of examples in few-shot context",
+    )
+    parser.add_argument(
+        "--batch_size",
+        "-b",
+        type=str,
+        default=1,
+        metavar="auto|auto:N|N",
+        help="Acceptable values are 'auto', 'auto:N' or N, where N is an integer. Default 1.",
+    )
+    parser.add_argument(
+        "--max_batch_size",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Maximal batch size to try with --batch_size auto.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Device to use (e.g. cuda, cuda:0, cpu).",
+    )
+    parser.add_argument(
+        "--output_path",
+        "-o",
+        default=None,
+        type=str,
+        metavar="DIR|DIR/file.json",
+        help="The path to the output file where the result metrics will be saved. If the path is a directory and log_samples is true, the results will be saved in the directory. Else the parent directory will be used.",
+    )
+    parser.add_argument(
+        "--limit",
+        "-L",
+        type=float,
+        default=None,
+        metavar="N|0<N<1",
+        help="Limit the number of examples per task. "
+        "If <1, limit is a percentage of the total number of examples.",
+    )
+    parser.add_argument(
+        "--use_cache",
+        "-c",
+        type=str,
+        default=None,
+        metavar="DIR",
+        help="A path to a sqlite db file for caching model responses. `None` if not caching.",
+    )
+    parser.add_argument("--decontamination_ngrams_path", default=None)  # TODO: not used
+    parser.add_argument(
+        "--check_integrity",
+        action="store_true",
+        help="Whether to run the relevant part of the test suite for the tasks.",
+    )
+    parser.add_argument(
+        "--write_out",
+        "-w",
+        action="store_true",
+        default=False,
+        help="Prints the prompt for the first few documents.",
+    )
+    parser.add_argument(
+        "--log_samples",
+        "-s",
+        action="store_true",
+        default=False,
+        help="If True, write out all model outputs and documents for per-sample measurement and post-hoc analysis. Use with --output_path.",
+    )
+    parser.add_argument(
+        "--show_config",
+        action="store_true",
+        default=False,
+        help="If True, shows the the full config of all tasks at the end of the evaluation.",
+    )
+    parser.add_argument(
+        "--include_path",
+        type=str,
+        default=None,
+        metavar="DIR",
+        help="Additional path to include if there are external tasks to include.",
+    )
+    parser.add_argument(
+        "--gen_kwargs",
+        default=None,
+        help=(
+            "String arguments for model generation on greedy_until tasks,"
+            " e.g. `temperature=0,top_k=0,top_p=0`."
+        ),
+    )
+    parser.add_argument(
+        "--verbosity",
+        "-v",
+        type=str.upper,
+        default="INFO",
+        metavar="CRITICAL|ERROR|WARNING|INFO|DEBUG",
+        help="Controls the reported logging error level. Set to DEBUG when testing + adding new task configurations for comprehensive log output.",
+    )
+    return parser.parse_args()
 
 
 def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
@@ -35,6 +158,10 @@ def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
             " --limit SHOULD ONLY BE USED FOR TESTING."
             "REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT."
         )
+
+    WORKING_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
+    WORKING_DIR = os.path.abspath(WORKING_DIR)
+    include_path(WORKING_DIR)
     if args.include_path is not None:
         eval_logger.info(f"Including path: {args.include_path}")
         include_path(args.include_path)

@@ -13,6 +13,7 @@ cache_dir=models
 tasks=mathqa
 nj=12
 verbosity=INFO
+num_fewshots=0
 
 log "$0 $*"
 . parse_options.sh
@@ -41,10 +42,11 @@ log "LM Evaluation started... log: '${working_dir}/initial_eval.log'"
             --tasks ${tasks} \
             --output_path ${working_dir}/init_evals \
             --batch_size auto \
-            --log_samples \
+            --device cuda \
+            --num_fewshot ${num_fewshots} \
             --verbosity ${verbosity} \
             --write_out \
-            --device cuda 
+            --log_samples
             # --limit 10 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
