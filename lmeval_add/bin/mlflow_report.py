@@ -5,6 +5,8 @@ import json
 import os
 import sys
 
+import numpy as np
+
 from lm_eval import utils
 from lmeval_add.utils.mlflow import ClientTracker
 
@@ -129,8 +131,14 @@ if __name__ == "__main__":
                 elif key == "target":
                     target.append(str(value))
                 elif key == "filtered_resps":
-                    _val = str(value[0])
-                    outputs.append(_val)
+                    if isinstance(value[0], list) and len(value[0]) == 2:
+                        # For multichoice option
+                        _val = np.array([x[0] for x in value])
+                        _val = np.argmax(_val)
+                    else:
+                        # For single choice
+                        _val = value[0]
+                    outputs.append(str(_val))
                 elif key in ["acc"]:
                     if key not in scores:
                         scores[key] = list()
