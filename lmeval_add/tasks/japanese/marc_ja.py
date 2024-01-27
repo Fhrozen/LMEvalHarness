@@ -144,11 +144,11 @@ class MARCJaWithFintanPrompt(MultipleChoiceTask):
             "balanced_acc": (acc, gold),
             "mcc": (gold, pred),
             "macro_f1": (gold, pred),
-            "details": {
-                "question": self.doc_to_text(doc),
-                "response": response,
-                "scores": results,
-            },
+            # "details": {
+            #     "question": self.doc_to_text(doc),
+            #     "response": response,
+            #     "scores": results,
+            # },
         }
 
     def aggregation(self):

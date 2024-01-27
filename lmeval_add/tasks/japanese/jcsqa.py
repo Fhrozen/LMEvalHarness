@@ -97,6 +97,9 @@ class JCommonsenseQA(MultipleChoiceTask):
 
     def process_results(self, doc, results):
         gold = doc["gold"]
+        results = [
+            res[0] for res in results
+        ]
 
         response = np.argmax(results)
         acc = 1.0 if response == gold else 0.0
@@ -108,15 +111,15 @@ class JCommonsenseQA(MultipleChoiceTask):
             "acc_norm": acc_norm,
         }
         # only include details if we were wrong
-        if acc == 0.0:
-            # without the cast it won't serialize
-            response = int(response)
-            out["details"] = {
-                "question": doc["goal"],
-                "choices": doc["choices"],
-                "gold": doc["gold"],
-                "response": response,
-            }
+        # if acc == 0.0:
+        #     # without the cast it won't serialize
+        #     response = int(response)
+        #     out["details"] = {
+        #         "question": doc["goal"],
+        #         "choices": doc["choices"],
+        #         "gold": doc["gold"],
+        #         "response": response,
+        #     }
         return out
 
 

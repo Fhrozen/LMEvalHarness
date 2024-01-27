@@ -40,6 +40,7 @@ class MGSM(Task):
     SEP = "\n"
     LOAD_TOKENIZER = True
     max_gen_toks = None
+    max_length = None
 
     def has_training_docs(self):
         return True
@@ -67,7 +68,10 @@ class MGSM(Task):
     def doc_to_target(self, doc):
         # ステップごとの答え： is in text instead of target
         # so that the model doesn't have to generate it
-        return "" + doc["answer"].replace("ステップごとの答え：", "")
+        _answer = doc["answer"]
+        if _answer is None:
+            _answer = str(doc["answer_number"])
+        return "" + _answer.replace("ステップごとの答え：", "")
 
     def fewshot_context(self, doc, num_fewshot, **kwargs):
         max_length = self.max_length - self.max_gen_toks

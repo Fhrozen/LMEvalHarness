@@ -57,6 +57,8 @@ class XLSumJa(Task):
     DESCRIPTION = "与えられたニュース記事を要約してください。\n\n"
     LOAD_TOKENIZER = True
     SEP = "\n"
+    max_length = None
+    max_gen_toks = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -160,13 +162,13 @@ class XLSumJa(Task):
             )
         }
         # add verbose output
-        out["details"] = {
-            # this isn't really a question, but keeping it this way for
-            # consistency
-            "question": doc["text"],
-            "response": continuation,
-            "gold": doc["summary"],
-        }
+        # out["details"] = {
+        #     # this isn't really a question, but keeping it this way for
+        #     # consistency
+        #     "question": doc["text"],
+        #     "response": continuation,
+        #     "gold": doc["summary"],
+        # }
         return out
 
     def aggregation(self):

@@ -119,12 +119,18 @@ def simple_evaluate(
 
     task_dict = lm_eval.tasks.get_task_dict(tasks)
 
+    # TODO(Fhrozen): Remove num_fewshots and move it to the Tasks python
+    # or yamls. num_fewshot: 0
     if num_fewshot is not None:
         if isinstance(num_fewshot, list):
-            pass
-    print(type(num_fewshot))
-    exit(1)
-    for task_name in task_dict.keys():
+            if len(num_fewshot) == 0:
+                num_fewshot = {}
+            else:
+                num_fewshot = {k: v for k, v in enumerate(num_fewshot)}
+        else:
+            num_fewshot = {0: num_fewshot}
+
+    for task_idx, task_name in enumerate(task_dict.keys()):
         task_obj = task_dict[task_name]
         if type(task_obj) == tuple:
             group, task_obj = task_obj
@@ -135,7 +141,8 @@ def simple_evaluate(
         if config["output_type"] == "generate_until" and gen_kwargs is not None:
             config["generation_kwargs"].update(gen_kwargs)
 
-        if num_fewshot is not None:
+        _num_fewshot = num_fewshot.get(task_idx, None)
+        if _num_fewshot is not None:
             if config["num_fewshot"] == 0:
                 eval_logger.info(
                     f"num_fewshot has been set to 0 for {task_name} in its config. Manual configuration will be ignored."
@@ -143,10 +150,10 @@ def simple_evaluate(
             else:
                 default_num_fewshot = config["num_fewshot"]
                 eval_logger.warning(
-                    f"Overwriting default num_fewshot of {task_name} from {default_num_fewshot} to {num_fewshot}"
+                    f"Overwriting default num_fewshot of {task_name} from {default_num_fewshot} to {_num_fewshot}"
                 )
 
-                task_obj._config["num_fewshot"] = num_fewshot
+                task_obj._config["num_fewshot"] = _num_fewshot
 
         # TODO(Fhrozen): Try to remove this part so loading the tasks could be simplifyied
         # Maybe using trust_code in the dataset loading.
@@ -158,13 +165,13 @@ def simple_evaluate(
                 else:
                     task_obj.tokenizer = lm.tokenizer
         if hasattr(task_obj, "max_length"):
-            task.max_length = (
+            task_obj.max_length = (
                 lm.lm.max_length
                 if isinstance(lm, lm_eval.api.model.CachingLM)
                 else lm.max_length
             )
         if hasattr(task_obj, "max_gen_toks"):
-            task.max_gen_toks = (
+            task_obj.max_gen_toks = (
                 lm.lm.max_gen_toks
                 if isinstance(lm, lm_eval.api.model.CachingLM)
                 else lm.max_gen_toks

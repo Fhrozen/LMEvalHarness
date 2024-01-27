@@ -49,9 +49,16 @@ class JAQKETV2(Task):
     SEP = "\n"
     FEWSHOT_SEP = "\n\n"
     REMOVE_IDS = []
+    max_length = None
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        _kwargs = {k:v for k, v in kwargs.items() if k != "config"}
+        config = kwargs.get("config", {})
+        config = dict(
+            num_fewshot=1,
+            fewshot_delimiter=self.FEWSHOT_SEP,
+        )
+        super().__init__(config=config, **_kwargs)
         self.jasqaud_metric = evaluate.load(jasquad.__file__)
 
     def download(self, data_dir=None, cache_dir=None, download_mode=None):

@@ -82,12 +82,14 @@ class JNLIWithFintanPrompt(MultipleChoiceTask):
 
     def process_results(self, doc, results):
         gold = doc["gold"]
-
+        results = [
+            res[0] for res in results
+        ]
         # This isn't very clean, but it may be the best we can do since lm ops
         # are submitted as an iterator for batching
-        response = None
-        if isinstance(results[-1], str):
-            response = results.pop()
+        # response = None
+        # if isinstance(results[-1], str):
+        #     response = results.pop()
 
         pred = np.argmax(results)
         acc = 1.0 if np.argmax(results) == gold else 0.0
@@ -100,11 +102,11 @@ class JNLIWithFintanPrompt(MultipleChoiceTask):
             "balanced_acc": (acc, gold),
             "mcc": (gold, pred),
             "macro_f1": (gold, pred),
-            "details": {
-                "question": self.doc_to_text(doc),
-                "response": response,
-                "scores": results,
-            },
+            # "details": {
+            #     "question": self.doc_to_text(doc),
+            #     "response": response,
+            #     "scores": results,
+            # },
         }
 
     def doc_to_text(self, doc):

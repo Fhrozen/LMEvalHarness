@@ -9,6 +9,6 @@ TASK+="xlsum_ja_1.0-0.0,"  # Version 0.2 is missing (?)
 TASK+="xwinograd_jp,"
 TASK+="mgsm_1.0-0.0"
 
-./run.sh --model_id cyberagent/open-calm-3b \
+./run.sh --model_id cyberagent/open-calm-1b \
         --tasks $TASK \
         --num_fewshots "3 3 3 2 1 1 0 5"
