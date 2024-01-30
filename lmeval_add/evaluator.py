@@ -121,7 +121,9 @@ def simple_evaluate(
 
     # TODO(Fhrozen): Remove num_fewshots and move it to the Tasks python
     # or yamls. num_fewshot: 0
-    if num_fewshot is not None:
+    if num_fewshot is None:
+        num_fewshot = {}
+    else:
         if isinstance(num_fewshot, list):
             if len(num_fewshot) == 0:
                 num_fewshot = {}
