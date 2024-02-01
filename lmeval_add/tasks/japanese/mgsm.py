@@ -5,7 +5,7 @@ https://arxiv.org/pdf/2210.03057.pdf
 Multilingual Grade School Math problems with a numerical answer and a chain-of-thought prompt.
 """
 import os
-from lm_eval.api.task import Task
+from lmeval_add.api.task import Task
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 from lm_eval.api.metrics import mean
@@ -41,6 +41,7 @@ class MGSM(Task):
     LOAD_TOKENIZER = True
     max_gen_toks = None
     max_length = None
+    num_fewshot = 1
 
     def has_training_docs(self):
         return True
@@ -101,7 +102,6 @@ class MGSM(Task):
             idx=0,
             **kwargs
         )
-        return continuation
 
     def _tokenize(self, text, **kwargs):
         encode_fn = self.tokenizer.encode
@@ -143,14 +143,6 @@ class MGSM(Task):
         answer = doc["answer_number"]
         acc = extracted_answer == answer
         out = {"acc": acc}
-        # out["details"] = {
-        #     "question": doc["question"],
-        #     "context": doc["context"],
-        #     "completion": completion,
-        #     "extracted_answer": extracted_answer,
-        #     "answer": answer,
-        #     "acc": acc,
-        # }
         return out
 
     def higher_is_better(self):
@@ -173,7 +165,7 @@ class MGSM(Task):
 @register_task("mgsm_1.0-0.3")
 class MGSMWithJAAlpacaPrompt(MGSM):
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    description = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
     INSTRUCTION = "与えられた問題に対して、ステップごとに答えを導き出してください。"
 
     def doc_to_text(self, doc):
@@ -201,8 +193,8 @@ class MGSMWithRinnaInstructionSFT(MGSM):
     """
 
     PROMPT_VERSION = 0.4
-    FEWSHOT_SEP = "<NL>"
-    DESCRIPTION = f"ユーザー: 与えられた問題をステップごとに解説してください。<NL>システム: 分かりました。<NL>"
+    fewshot_delimiter = "<NL>"
+    description = f"ユーザー: 与えられた問題をステップごとに解説してください。<NL>システム: 分かりました。<NL>"
 
     def doc_to_text(self, doc):
         input_text = f"問題：{doc['question'].replace('問題：','')}"
@@ -217,8 +209,8 @@ class MGSMWithRinnaBilingualInstructionSFT(MGSMWithRinnaInstructionSFT):
     """
 
     PROMPT_VERSION = 0.5
-    DESCRIPTION = f"ユーザー: 与えられた問題をステップごとに解説してください。\nシステム: 分かりました。\n"
-    FEWSHOT_SEP = "\n"
+    description = f"ユーザー: 与えられた問題をステップごとに解説してください。\nシステム: 分かりました。\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("mgsm_1.0-0.6")
@@ -240,8 +232,8 @@ class MGSMWithLlama2(MGSMWithJAAlpacaPrompt):
     # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    description = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """

@@ -1,0 +1,4 @@
+dataset_name: jp
+include: xwinograd_common_yaml
+task: xwinograd_ja
+num_fewshot: 5

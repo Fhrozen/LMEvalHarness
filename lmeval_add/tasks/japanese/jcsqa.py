@@ -11,7 +11,7 @@ import os
 import warnings
 import time
 
-from lm_eval.api.task import MultipleChoiceTask
+from lmeval_add.api.task import MultipleChoiceTask
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 import numpy as np
@@ -45,7 +45,8 @@ class JCommonsenseQA(MultipleChoiceTask):
     PROMPT_VERSION = 0.1
     DATASET_PATH = "shunk031/JGLUE"
     DATASET_NAME = "JCommonsenseQA"
-    DESCRIPTION = "[問題]に対する[答え]を[選択肢]の中から選んでください。\n\n"
+    description = "[問題]に対する[答え]を[選択肢]の中から選んでください。\n\n"
+    num_fewshot = 3
 
     def has_training_docs(self):
         return True
@@ -131,7 +132,7 @@ class JCommonsenseQAWithFintanPrompt(JCommonsenseQA):
 
     VERSION = 1.1
     PROMPT_VERSION = 0.2
-    DESCRIPTION = (
+    description = (
         "質問と回答の選択肢を入力として受け取り、選択肢から回答を選択してください。なお、回答は選択肢の番号(例:0)でするものとします。 \n\n"
     )
     DID_WARNING = False
@@ -163,7 +164,7 @@ class JCommonsenseQAWithFintanPrompt(JCommonsenseQA):
 class JCommonsenseQAWithFintanPromptV21(JCommonsenseQA):
     VERSION = 1.1
     PROMPT_VERSION = "0.2.1"
-    DESCRIPTION = "与えられた選択肢の中から、最適な答えを選んでください。 \n\n"
+    description = "与えられた選択肢の中から、最適な答えを選んでください。 \n\n"
 
     def doc_to_text(self, doc):
         """
@@ -198,7 +199,7 @@ class JCommonsenseQAWithJAAlpacaPrompt(JCommonsenseQA):
 
     VERSION = 1.1
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    description = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
     INSTRUCTION = "与えられた選択肢の中から、最適な答えを選んでください。"
 
     def doc_to_text(self, doc):
@@ -229,9 +230,9 @@ class JCommonsenseQAWithRinnaInstructionSFT(JCommonsenseQA):
 
     VERSION = 1.1
     PROMPT_VERSION = 0.4
-    DESCRIPTION = "ユーザー: 与えられた選択肢の中から、最適な答えを選んでください。<NL>システム: 分かりました。<NL>"
+    description = "ユーザー: 与えられた選択肢の中から、最適な答えを選んでください。<NL>システム: 分かりました。<NL>"
     SEP = "<NL>"
-    FEWSHOT_SEP = "<NL>"
+    fewshot_delimiter = "<NL>"
 
     def doc_to_text(self, doc):
         choices = self.SEP.join([f"- {choice}" for choice in doc["choices"]])
@@ -249,9 +250,9 @@ class JCommonsenseQAWithRinnaBilingualInstructionSFT(
     """
 
     PROMPT_VERSION = 0.5
-    DESCRIPTION = "ユーザー: 与えられた選択肢の中から、最適な答えを選んでください。\nシステム: 分かりました。\n"
+    description = "ユーザー: 与えられた選択肢の中から、最適な答えを選んでください。\nシステム: 分かりました。\n"
     SEP = "\n"
-    FEWSHOT_SEP = "\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("jcommonsenseqa_1.1-0.6")
@@ -272,9 +273,9 @@ class JCommonsenseQAWithLlama2(JCommonsenseQA):
     # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
+    description = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
     INSTRUCTION = "与えられた5つの選択肢の中から、最適な答えを選んでください。"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """

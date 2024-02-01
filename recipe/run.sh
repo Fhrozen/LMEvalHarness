@@ -13,7 +13,7 @@ cache_dir=models
 tasks=mathqa
 nj=12
 verbosity=INFO
-num_fewshots=0
+num_fewshots=""
 
 use_mlflow=false
 experiment_name=lm_harness
@@ -42,6 +42,12 @@ model_id=${model_id//-/_}
 working_dir="exp/output_${model_id}"
 
 log "LM Evaluation started... log: '${working_dir}/run.log'"
+
+run_args=""
+if [ -n "${num_fewshots}" ]; then
+    run_args="--num_fewshot ${num_fewshots}"
+fi
+
 run.pl --gpu ${ngpu} ${working_dir}/run.log \
         python -m lmeval_add.bin.run --model hf \
             --model_args ${models_args} \
@@ -49,13 +55,13 @@ run.pl --gpu ${ngpu} ${working_dir}/run.log \
             --output_path ${working_dir} \
             --batch_size auto \
             --device cuda \
-            --num_fewshot ${num_fewshots} \
             --verbosity ${verbosity} \
             --write_out \
-            --log_samples
+            --log_samples \
+            ${run_args}
 
 if ${use_mlflow} ;then
-    if [ -z ${run_name} ]; then
+    if [ -z "${run_name}" ]; then
         run_name=${model_id}
     fi
 

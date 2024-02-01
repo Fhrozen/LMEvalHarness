@@ -11,7 +11,7 @@ import os
 import numpy as np
 
 # from lm_eval.base import BalancedMultipleChoiceTask, rf
-from lm_eval.api.task import MultipleChoiceTask
+from lmeval_add.api.task import MultipleChoiceTask
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 from lm_eval.api.metrics import mean, matthews_corrcoef
@@ -45,7 +45,7 @@ class JNLIWithFintanPrompt(MultipleChoiceTask):
     PROMPT_VERSION = 0.2
     DATASET_PATH = "shunk031/JGLUE"
     DATASET_NAME = "JNLI"
-    DESCRIPTION = (
+    description = (
         "前提と仮説の関係を含意、矛盾、中立の中から回答してください。\n\n"
         + "制約:\n"
         + "- 前提から仮説が、論理的知識や常識的知識を用いて導出可能である場合は含意と出力\n"
@@ -54,6 +54,7 @@ class JNLIWithFintanPrompt(MultipleChoiceTask):
     )
     CHOICES = ["含意", "矛盾", "中立"]
     SEP = "\n"
+    num_fewshot = 3
 
     def has_training_docs(self):
         return True
@@ -171,7 +172,7 @@ class JNLIWithJAAlpacaPrompt(JNLIWithFintanPrompt):
     """
 
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    description = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
     INSTRUCTION = f"与えられた前提と仮説の関係を回答してください。\n\n出力は以下から選択してください：\n" + "\n".join(
         JNLIWithFintanPrompt.CHOICES
     )
@@ -201,14 +202,14 @@ class JNLIWithRinnaInstructionSFT(JNLIWithFintanPrompt):
     """
 
     PROMPT_VERSION = 0.4
-    DESCRIPTION = (
+    description = (
         "ユーザー: "
         + f"与えられた前提と仮説の関係を回答してください。出力は以下から選択してください：<NL>"
         + "<NL>".join(JNLIWithFintanPrompt.CHOICES)
         + "<NL>システム: 分かりました。<NL>"
     )
     SEP = "<NL>"
-    FEWSHOT_SEP = "<NL>"
+    fewshot_delimiter = "<NL>"
 
     def doc_to_text(self, doc):
         input_text = f"前提：{doc['premise']}{self.SEP}仮説：{doc['hypothesis']}"
@@ -230,7 +231,7 @@ class JNLIWithRinnaBilingualInstructionSFT(JNLIWithRinnaInstructionSFT):
         + "\nシステム: 分かりました。\n"
     )
     SEP = "\n"
-    FEWSHOT_SEP = "\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("jnli_1.3-0.6")
@@ -252,7 +253,7 @@ class JNLIWithLlama2(JNLIWithJAAlpacaPrompt):
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
     DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """

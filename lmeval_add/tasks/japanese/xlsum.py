@@ -10,7 +10,7 @@ Homepage: https://github.com/csebuetnlp/xl-sum
 """
 import os
 import inspect
-from lm_eval.api.task import Task
+from lmeval_add.api.task import Task
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 
@@ -54,7 +54,7 @@ class XLSumJa(Task):
     PROMPT_VERSION = 0.0
     DATASET_PATH = "mkshing/xlsum_ja"
     DATASET_NAME = None
-    DESCRIPTION = "与えられたニュース記事を要約してください。\n\n"
+    description = "与えられたニュース記事を要約してください。\n\n"
     LOAD_TOKENIZER = True
     SEP = "\n"
     max_length = None
@@ -188,7 +188,7 @@ class XLSumJa(Task):
 @register_task("xlsum_ja_1.0-0.3")
 class XLSumJaWithJAAlpacaPrompt(XLSumJa):
     PROMPT_VERSION = 0.3
-    DESCRIPTION = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
+    description = "以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。要求を適切に満たす応答を書きなさい。\n\n"
     INSTRUCTION = "与えられたニュース記事を要約してください。"
 
     def doc_to_text(self, doc):
@@ -224,9 +224,9 @@ class XLSumJaWithRinnaInstructionSFT(XLSumJa):
     """
 
     PROMPT_VERSION = 0.4
-    DESCRIPTION = "ユーザー: 与えられたニュース記事を要約してください。<NL>システム: 分かりました。<NL>"
+    description = "ユーザー: 与えられたニュース記事を要約してください。<NL>システム: 分かりました。<NL>"
     SEP = "<NL>"
-    FEWSHOT_SEP = "<NL>"
+    fewshot_delimiter = "<NL>"
 
     def doc_to_text(self, doc):
         input_text = f"ニュース記事:{doc['text']}"
@@ -250,7 +250,7 @@ class XLSumJaWithRinnaBilingualInstructionSFT(XLSumJaWithRinnaInstructionSFT):
     PROMPT_VERSION = 0.5
     DESCRIPTION = "ユーザー: 与えられたニュース記事を要約してください。\nシステム: 分かりました。\n"
     SEP = "\n"
-    FEWSHOT_SEP = "\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("xlsum_ja_1.0-0.6")
@@ -271,9 +271,9 @@ class XLSumJaWithLlama2(XLSumJa):
     # DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
+    description = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
     INSTRUCTION = "与えられたニュース記事を要約してください。"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """

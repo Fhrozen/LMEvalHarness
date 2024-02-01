@@ -12,7 +12,7 @@ import evaluate
 from functools import partial
 from math import exp
 
-from lm_eval.api.task import Task
+from lmeval_add.api.task import Task
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 
@@ -45,55 +45,15 @@ class JAQKETV2(Task):
     DATASET_PATH = "kumapo/JAQKET"
     DATASET_NAME = "v2.0"
     LOAD_TOKENIZER = True
-    DESCRIPTION = "[題名]と[問題]から[質問]に対する[答え]を抜き出しなさい\n\n"
     SEP = "\n"
-    FEWSHOT_SEP = "\n\n"
     REMOVE_IDS = []
     max_length = None
-
-    def __init__(self, **kwargs):
-        _kwargs = {k:v for k, v in kwargs.items() if k != "config"}
-        config = kwargs.get("config", {})
-        config = dict(
-            num_fewshot=1,
-            fewshot_delimiter=self.FEWSHOT_SEP,
-        )
-        super().__init__(config=config, **_kwargs)
-        self.jasqaud_metric = evaluate.load(jasquad.__file__)
-
-    def download(self, data_dir=None, cache_dir=None, download_mode=None):
-        """Downloads and returns the task dataset.
-        Override this method to download the dataset from a custom API.
-
-        :param data_dir: str
-            Stores the path to a local folder containing the `Task`'s data files.
-            Use this to specify the path to manually downloaded data (usually when
-            the dataset is not publicly accessible).
-        :param cache_dir: str
-            The directory to read/write the `Task` dataset. This follows the
-            HuggingFace `datasets` API with the default cache directory located at:
-                `~/.cache/huggingface/datasets`
-            NOTE: You can change the cache location globally for a given process
-            by setting the shell environment variable, `HF_DATASETS_CACHE`,
-            to another directory:
-                `export HF_DATASETS_CACHE="/path/to/another/directory"`
-        :param download_mode: datasets.DownloadMode
-            How to treat pre-existing `Task` downloads and data.
-            - `datasets.DownloadMode.REUSE_DATASET_IF_EXISTS`
-                Reuse download and reuse dataset.
-            - `datasets.DownloadMode.REUSE_CACHE_IF_EXISTS`
-                Reuse download with fresh dataset.
-            - `datasets.DownloadMode.FORCE_REDOWNLOAD`
-                Fresh download and fresh dataset.
-        """
-        self.dataset = datasets.load_dataset(
-            path=self.DATASET_PATH,
-            name=self.DATASET_NAME,
-            data_dir=data_dir,
-            cache_dir=cache_dir,
-            download_mode=download_mode,
-            num_contexts=TOP_K_LIMIT,
-        )
+    description = "[題名]と[問題]から[質問]に対する[答え]を抜き出しなさい\n\n"
+    num_fewshot = 1
+    dataset_kwargs={
+        "num_contexts" : TOP_K_LIMIT,
+    }
+    jasqaud_metric = evaluate.load(jasquad.__file__)
 
     def has_training_docs(self):
         return True
@@ -279,7 +239,7 @@ class JAQKETV2WithFintanPrompt(JAQKETV2):
     """
 
     PROMPT_VERSION = 0.2
-    DESCRIPTION = "質問に対する回答を文章から一言で抽出してください。回答は名詞で答えてください。\n\n"
+    description = "質問に対する回答を文章から一言で抽出してください。回答は名詞で答えてください。\n\n"
     SEP = "\n"
 
     def doc_to_qa_prompt(self, doc):
@@ -323,7 +283,7 @@ class JAQKETV2WithJAAlpacaPrompt(JAQKETV2):
     """
 
     PROMPT_VERSION = 0.3
-    DESCRIPTION = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
+    description = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
     要求を適切に満たす応答を書きなさい。"""
     INSTRUCTION = "与えられた文脈から、質問に対する答えを抜き出してください。"
 
@@ -367,11 +327,10 @@ class JAQKETV2WithRinnaInstructionSFT(JAQKETV2):
     """
 
     PROMPT_VERSION = 0.4
-    DESCRIPTION = "ユーザー: 与えられた文脈から、質問に対する答えを抜き出してください。<NL>システム: 分かりました。<NL>"
     SEP = "<NL>"
-    FEWSHOT_SEP = "<NL>"
     END_OF_DESCRIPTION = "システム: 分かりました。<NL>"
     START_OF_FEWSHOT = "ユーザー: 文脈："
+    fewshot_delimiter = "<NL>"
 
     def doc_to_qa_prompt(self, doc):
         return "質問：" + doc["question"]
@@ -401,9 +360,9 @@ class JAQKETV2WithRinnaBilingualInstructionSFT(JAQKETV2WithRinnaInstructionSFT):
     """
 
     PROMPT_VERSION = 0.5
-    DESCRIPTION = "ユーザー: 与えられた文脈から、質問に対する答えを抜き出してください。\nシステム: 分かりました。\n"
+    description = "ユーザー: 与えられた文脈から、質問に対する答えを抜き出してください。\nシステム: 分かりました。\n"
     SEP = "\n"
-    FEWSHOT_SEP = "\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("jaqket_v2_0.2-0.6")
@@ -432,8 +391,8 @@ class JAQKETV2WithLlama2(JAQKETV2WithJAAlpacaPrompt):
     # If you don't know the answer to a question, please don't share false information."""
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    description = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """

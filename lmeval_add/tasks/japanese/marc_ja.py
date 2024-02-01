@@ -11,7 +11,7 @@ Homepage: https://github.com/yahoojapan/JGLUE
 
 import os
 import numpy as np
-from lm_eval.api.task import MultipleChoiceTask
+from lmeval_add.api.task import MultipleChoiceTask
 from lm_eval.api.instance import Instance
 from lm_eval.api.registry import register_task
 from lm_eval.api.metrics import mean, matthews_corrcoef
@@ -52,10 +52,11 @@ class MARCJaWithFintanPrompt(MultipleChoiceTask):
     PROMPT_VERSION = 0.2
     DATASET_PATH = "shunk031/JGLUE"
     DATASET_NAME = "MARC-ja"
-    DESCRIPTION = """製品レビューをnegativeかpositiveのいずれかのセンチメントに分類してください。
+    description = """製品レビューをnegativeかpositiveのいずれかのセンチメントに分類してください。
     出力は小文字化してください。 \n\n"""
     CHOICES = ["positive", "negative"]
     SEP = "\n"
+    num_fewshot = 1
 
     def has_training_docs(self):
         return True
@@ -188,7 +189,7 @@ class MARCJaWithJAAlpacaPrompt(MARCJaWithFintanPrompt):
     """
 
     PROMPT_VERSION = 0.3
-    DESCRIPTION = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
+    description = """以下は、タスクを説明する指示と、文脈のある入力の組み合わせです。
     要求を適切に満たす応答を書きなさい。\n\n"""
     INSTRUCTION = "以下の製品レビューを、ポジティブまたはネガティブの感情クラスのいずれかに分類してください。"
     CHOICES = ["ポジティブ", "ネガティブ"]
@@ -218,13 +219,13 @@ class MARCJaWithRinnaInstructionSFT(MARCJaWithFintanPrompt):
     """
 
     PROMPT_VERSION = 0.4
-    DESCRIPTION = (
+    description = (
         """ユーザー: 与えられた製品レビューを、ポジティブまたはネガティブの感情クラスのいずれかに分類してください。
         <NL>システム: 分かりました。<NL>"""
     )
     CHOICES = ["ポジティブ", "ネガティブ"]
     SEP = "<NL>"
-    FEWSHOT_SEP = "<NL>"
+    fewshot_delimiter = "<NL>"
 
     def doc_to_text(self, doc):
         input_text = doc["query"]
@@ -239,12 +240,12 @@ class MARCJaWithRinnaBilingualInstructionSFT(MARCJaWithRinnaInstructionSFT):
     """
 
     PROMPT_VERSION = 0.5
-    DESCRIPTION = (
+    description = (
         """ユーザー: 与えられた製品レビューを、ポジティブまたはネガティブの感情クラスのいずれかに分類してください。
         システム: 分かりました。\n"""
     )
     SEP = "\n"
-    FEWSHOT_SEP = "\n"
+    fewshot_delimiter = "\n"
 
 
 @register_task("marc_ja_1.1-0.6")
@@ -273,8 +274,8 @@ class MARCJaWithLlama2(MARCJaWithJAAlpacaPrompt):
 
     DEFAULT_SYSTEM_PROMPT = "あなたは役立つアシスタントです。"
     SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
-    DESCRIPTION = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
-    FEWSHOT_SEP = " </s><s>[INST] "
+    description = f"<s>[INST] <<SYS>>\n{SYSTEM_PROMPT}\n<</SYS>>\n\n"
+    fewshot_delimiter = " </s><s>[INST] "
 
     def doc_to_text(self, doc):
         """
